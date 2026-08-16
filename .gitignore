@@ -1,0 +1,52 @@
+# Gradle build output and cache
+.gradle/
+**/build/
+build/
+
+# Local Android SDK configuration
+local.properties
+
+# Android Studio / IntelliJ IDEA
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+
+# Android generated files
+captures/
+.externalNativeBuild/
+.cxx/
+*.apk
+*.aab
+*.ap_
+*.dex
+
+# Signing files and secrets
+*.jks
+*.keystore
+keystore.properties
+secrets.properties
+
+# Kotlin
+.kotlin/
+
+# Firebase / Google Services local files
+google-services.json
+
+# Operating system files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs and temporary files
+*.log
+*.tmp
+*.temp
+*.swp
+*~
+
+# Environment files
+.env
+.env.*
+!.env.example
