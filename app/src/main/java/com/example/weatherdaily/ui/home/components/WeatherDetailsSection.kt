@@ -23,9 +23,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.weatherdaily.ui.home.SkeletonBox
 import com.example.weatherdaily.ui.theme.SkyBlue
+import com.example.weatherdaily.domain.model.CurrentWeather
+import kotlin.math.roundToInt
 
 @Composable
 fun WeatherDetailsSection(
+    weather: CurrentWeather?,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -43,13 +46,9 @@ fun WeatherDetailsSection(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            WeatherDetailPlaceholder(
-                modifier = Modifier.weight(1f)
-            )
+            WeatherDetailPlaceholder(Modifier.weight(1f), "Chỉ số UV", weather?.uvIndex?.toString())
 
-            WeatherDetailPlaceholder(
-                modifier = Modifier.weight(1f)
-            )
+            WeatherDetailPlaceholder(Modifier.weight(1f), "Tầm nhìn", weather?.let { "${it.visibilityKm.roundToInt()} km" })
         }
 
         Spacer(modifier = Modifier.height(12.dp))
@@ -58,20 +57,18 @@ fun WeatherDetailsSection(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            WeatherDetailPlaceholder(
-                modifier = Modifier.weight(1f)
-            )
+            WeatherDetailPlaceholder(Modifier.weight(1f), "Hướng gió", weather?.let { "${it.windDirectionDegrees}°" })
 
-            WeatherDetailPlaceholder(
-                modifier = Modifier.weight(1f)
-            )
+            WeatherDetailPlaceholder(Modifier.weight(1f), "Áp suất", weather?.let { "${it.pressureHpa.roundToInt()} hPa" })
         }
     }
 }
 
 @Composable
 private fun WeatherDetailPlaceholder(
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    title: String,
+    value: String?,
 ) {
     Card(
         modifier = modifier,
@@ -94,19 +91,12 @@ private fun WeatherDetailPlaceholder(
 
             Spacer(modifier = Modifier.height(18.dp))
 
-            SkeletonBox(
-                modifier = Modifier
-                    .fillMaxWidth(0.65f)
-                    .height(11.dp)
-            )
+            Text(title, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurface.copy(.55f))
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            SkeletonBox(
-                modifier = Modifier
-                    .fillMaxWidth(0.85f)
-                    .height(18.dp)
-            )
+            if (value == null) SkeletonBox(Modifier.fillMaxWidth(.85f).height(18.dp))
+            else Text(value, fontSize = 17.sp, fontWeight = FontWeight.Bold)
 
             Spacer(modifier = Modifier.height(8.dp))
 

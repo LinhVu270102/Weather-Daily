@@ -24,9 +24,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.weatherdaily.ui.home.SkeletonBox
 import com.example.weatherdaily.ui.theme.*
+import com.example.weatherdaily.domain.model.WeatherLocation
 
 @Composable
-fun SearchScreen(onBackClick: () -> Unit, modifier: Modifier = Modifier) {
+fun SearchScreen(
+    uiState: SearchUiState = SearchUiState(),
+    onQueryChange: (String) -> Unit = {},
+    onSearch: () -> Unit = {},
+    onLocationClick: (WeatherLocation) -> Unit = {},
+    onBackClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     Column(
         modifier.fillMaxSize()
             .background(Brush.verticalGradient(listOf(LightSkyBlue, SkyBlue, DeepBlue)))
@@ -45,13 +53,33 @@ fun SearchScreen(onBackClick: () -> Unit, modifier: Modifier = Modifier) {
                 Text("Xem thời tiết ở mọi nơi", color = Color.White.copy(.7f), fontSize = 12.sp)
             }
         }
-        SearchFieldPlaceholder()
+        SearchField(
+            query = uiState.query,
+            isSearching = uiState.isSearching,
+            onQueryChange = onQueryChange,
+            onSearch = onSearch,
+        )
         Spacer(Modifier.height(18.dp))
         CurrentLocationCard()
         Spacer(Modifier.height(24.dp))
-        SectionLabel(Icons.Outlined.History, "Tìm kiếm gần đây")
+        SectionLabel(
+            Icons.Outlined.History,
+            if (uiState.query.length >= 2) "Kết quả tìm kiếm" else "Tìm kiếm gần đây"
+        )
         Spacer(Modifier.height(10.dp))
-        repeat(3) { SearchResultPlaceholder() }
+        if (uiState.query.length >= 2 && !uiState.isSearching && uiState.searchResults.isEmpty()) {
+            Text(
+                "Không tìm thấy địa điểm phù hợp",
+                color = Color.White.copy(.72f),
+                modifier = Modifier.padding(vertical = 16.dp),
+            )
+        } else if (uiState.searchResults.isEmpty()) {
+            repeat(3) { SearchResultPlaceholder() }
+        } else {
+            uiState.searchResults.take(5).forEach { location ->
+                SearchResult(location = location, onClick = { onLocationClick(location) })
+            }
+        }
         Spacer(Modifier.height(12.dp))
         SectionLabel(Icons.Outlined.LocationCity, "Thành phố phổ biến")
         Spacer(Modifier.height(10.dp))
@@ -60,12 +88,53 @@ fun SearchScreen(onBackClick: () -> Unit, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun SearchFieldPlaceholder() {
+private fun SearchField(
+    query: String,
+    isSearching: Boolean,
+    onQueryChange: (String) -> Unit,
+    onSearch: () -> Unit,
+) {
     Card(shape = RoundedCornerShape(22.dp), colors = CardDefaults.cardColors(MaterialTheme.colorScheme.surface.copy(.96f))) {
-        Row(Modifier.fillMaxWidth().padding(horizontal = 17.dp, vertical = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Outlined.Search, null, tint = SkyBlue)
+        TextField(
+            value = query,
+            onValueChange = onQueryChange,
+            modifier = Modifier.fillMaxWidth(),
+            placeholder = { Text("Nhập tên thành phố...") },
+            leadingIcon = { Icon(Icons.Outlined.Search, null, tint = SkyBlue) },
+            trailingIcon = { if (isSearching) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp) },
+            singleLine = true,
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor = Color.Transparent,
+                unfocusedContainerColor = Color.Transparent,
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent,
+            ),
+            keyboardActions = androidx.compose.foundation.text.KeyboardActions(onSearch = { onSearch() }),
+            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(imeAction = androidx.compose.ui.text.input.ImeAction.Search),
+        )
+    }
+}
+
+@Composable
+private fun SearchResult(location: WeatherLocation, onClick: () -> Unit) {
+    Card(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(MaterialTheme.colorScheme.surface.copy(.94f)),
+    ) {
+        Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(38.dp).background(SkyBlue.copy(.12f), CircleShape), contentAlignment = Alignment.Center) {
+                Icon(Icons.Outlined.LocationOn, null, tint = SkyBlue)
+            }
             Spacer(Modifier.width(12.dp))
-            Text("Nhập tên thành phố...", color = MaterialTheme.colorScheme.onSurface.copy(.42f), fontSize = 15.sp)
+            Column {
+                Text(location.name, fontWeight = FontWeight.SemiBold)
+                Text(
+                    listOfNotNull(location.administrativeArea, location.country).joinToString(", "),
+                    color = MaterialTheme.colorScheme.onSurface.copy(.55f), fontSize = 11.sp,
+                )
+            }
         }
     }
 }

@@ -29,6 +29,7 @@ import com.example.weatherdaily.ui.home.components.WeatherDetailsSection
 
 @Composable
 fun HomeScreen(
+    uiState: HomeUiState = HomeUiState(),
     contentPadding: PaddingValues = PaddingValues(0.dp),
     modifier: Modifier = Modifier,
     onSearchClick: () -> Unit = {},
@@ -43,13 +44,14 @@ fun HomeScreen(
     ) {
         item {
             CurrentWeatherHeader(
+                forecast = uiState.forecast,
                 onSearchClick = onSearchClick,
                 onNotificationClick = onNotificationClick
             )
         }
-        item { HourlyForecastSection() }
-        item { DailyForecastSection() }
-        item { WeatherDetailsSection() }
+        item { HourlyForecastSection(items = uiState.forecast?.hourly.orEmpty()) }
+        item { DailyForecastSection(items = uiState.forecast?.daily.orEmpty()) }
+        item { WeatherDetailsSection(weather = uiState.forecast?.current) }
     }
 }
 

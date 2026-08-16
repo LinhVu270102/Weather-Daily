@@ -32,9 +32,13 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.weatherdaily.ui.home.SkeletonBox
+import com.example.weatherdaily.domain.model.WeatherCondition
+import com.example.weatherdaily.domain.model.WeatherForecast
+import kotlin.math.roundToInt
 
 @Composable
 fun CurrentWeatherHeader(
+    forecast: WeatherForecast?,
     onSearchClick: () -> Unit,
     onNotificationClick: () -> Unit,
     modifier: Modifier = Modifier
@@ -55,21 +59,19 @@ fun CurrentWeatherHeader(
             Column(
                 modifier = Modifier.weight(1f)
             ) {
-                SkeletonBox(
-                    modifier = Modifier
-                        .width(130.dp)
-                        .height(22.dp),
-                    color = Color.White.copy(alpha = 0.35f)
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                SkeletonBox(
-                    modifier = Modifier
-                        .width(175.dp)
-                        .height(13.dp),
-                    color = Color.White.copy(alpha = 0.25f)
-                )
+                if (forecast == null) {
+                    SkeletonBox(Modifier.width(130.dp).height(22.dp), Color.White.copy(.35f))
+                    Spacer(Modifier.height(8.dp))
+                    SkeletonBox(Modifier.width(175.dp).height(13.dp), Color.White.copy(.25f))
+                } else {
+                    Text(forecast.location.name, color = Color.White, fontSize = 22.sp)
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        listOfNotNull(forecast.location.administrativeArea, forecast.location.country)
+                            .distinct().joinToString(", "),
+                        color = Color.White.copy(.72f), fontSize = 12.sp
+                    )
+                }
             }
 
             HeaderIconButton(
@@ -96,30 +98,21 @@ fun CurrentWeatherHeader(
             Column(
                 modifier = Modifier.weight(1f)
             ) {
-                SkeletonBox(
-                    modifier = Modifier
-                        .width(120.dp)
-                        .height(70.dp),
-                    color = Color.White.copy(alpha = 0.35f)
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                SkeletonBox(
-                    modifier = Modifier
-                        .width(100.dp)
-                        .height(20.dp),
-                    color = Color.White.copy(alpha = 0.3f)
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                SkeletonBox(
-                    modifier = Modifier
-                        .width(145.dp)
-                        .height(13.dp),
-                    color = Color.White.copy(alpha = 0.22f)
-                )
+                if (forecast == null) {
+                    SkeletonBox(Modifier.width(120.dp).height(70.dp), Color.White.copy(.35f))
+                    Spacer(Modifier.height(12.dp))
+                    SkeletonBox(Modifier.width(100.dp).height(20.dp), Color.White.copy(.3f))
+                    Spacer(Modifier.height(8.dp))
+                    SkeletonBox(Modifier.width(145.dp).height(13.dp), Color.White.copy(.22f))
+                } else {
+                    Text("${forecast.current.temperatureCelsius.roundToInt()}°", color = Color.White, fontSize = 70.sp)
+                    Text(forecast.current.condition.toVietnamese(), color = Color.White, fontSize = 19.sp)
+                    Spacer(Modifier.height(5.dp))
+                    Text(
+                        "Cảm giác như ${forecast.current.apparentTemperatureCelsius.roundToInt()}°",
+                        color = Color.White.copy(.72f), fontSize = 12.sp
+                    )
+                }
             }
 
             Box(
@@ -152,17 +145,20 @@ fun CurrentWeatherHeader(
         ) {
             WeatherMetricPlaceholder(
                 icon = Icons.Outlined.WaterDrop,
-                label = "Độ ẩm"
+                label = "Độ ẩm",
+                value = forecast?.current?.let { "${it.humidityPercent}%" }
             )
 
             WeatherMetricPlaceholder(
                 icon = Icons.Outlined.WindPower,
-                label = "Gió"
+                label = "Gió",
+                value = forecast?.current?.let { "${it.windSpeedKmh.roundToInt()} km/h" }
             )
 
             WeatherMetricPlaceholder(
                 icon = Icons.Outlined.WaterDrop,
-                label = "Khả năng mưa"
+                label = "Khả năng mưa",
+                value = forecast?.current?.let { "${it.precipitationProbabilityPercent}%" }
             )
         }
     }
@@ -194,7 +190,8 @@ private fun HeaderIconButton(
 @Composable
 private fun WeatherMetricPlaceholder(
     icon: ImageVector,
-    label: String
+    label: String,
+    value: String?,
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally
@@ -208,12 +205,11 @@ private fun WeatherMetricPlaceholder(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        SkeletonBox(
-            modifier = Modifier
-                .width(42.dp)
-                .height(14.dp),
-            color = Color.White.copy(alpha = 0.35f)
-        )
+        if (value == null) {
+            SkeletonBox(Modifier.width(42.dp).height(14.dp), Color.White.copy(.35f))
+        } else {
+            Text(value, color = Color.White, fontSize = 13.sp)
+        }
 
         Spacer(modifier = Modifier.height(5.dp))
 
@@ -223,4 +219,17 @@ private fun WeatherMetricPlaceholder(
             fontSize = 10.sp
         )
     }
+}
+
+private fun WeatherCondition.toVietnamese(): String = when (this) {
+    WeatherCondition.CLEAR -> "Trời quang"
+    WeatherCondition.PARTLY_CLOUDY -> "Có mây"
+    WeatherCondition.CLOUDY -> "Nhiều mây"
+    WeatherCondition.FOG -> "Có sương mù"
+    WeatherCondition.DRIZZLE -> "Mưa phùn"
+    WeatherCondition.RAIN -> "Có mưa"
+    WeatherCondition.HEAVY_RAIN -> "Mưa lớn"
+    WeatherCondition.SNOW -> "Có tuyết"
+    WeatherCondition.THUNDERSTORM -> "Có giông"
+    WeatherCondition.UNKNOWN -> "Không xác định"
 }

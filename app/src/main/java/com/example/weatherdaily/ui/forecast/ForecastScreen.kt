@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -38,29 +39,47 @@ import androidx.compose.ui.unit.sp
 import com.example.weatherdaily.ui.home.SkeletonBox
 import com.example.weatherdaily.ui.map.WeatherMapScreen
 import com.example.weatherdaily.ui.theme.SkyBlue
+import com.example.weatherdaily.domain.model.DailyWeather
+import com.example.weatherdaily.domain.model.WeatherCondition
+import com.example.weatherdaily.domain.model.WeatherForecast
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import kotlin.math.roundToInt
 
 @Composable
-fun ForecastScreen(contentPadding: PaddingValues, modifier: Modifier = Modifier) {
+fun ForecastScreen(
+    forecast: WeatherForecast? = null,
+    contentPadding: PaddingValues,
+    modifier: Modifier = Modifier,
+) {
     LazyColumn(
         modifier = modifier.fillMaxSize().padding(bottom = contentPadding.calculateBottomPadding()),
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 20.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        item { ForecastHeader() }
-        item { TemperatureOverviewCard() }
-        items(7) { ForecastDayCard() }
+        item { ForecastHeader(locationName = forecast?.location?.name) }
+        item { TemperatureOverviewCard(days = forecast?.daily.orEmpty()) }
+        if (forecast == null) {
+            items(7) { ForecastDayCard() }
+        } else {
+            items(forecast.daily, key = { it.dateEpochSeconds }) { ForecastDayCard(it) }
+        }
     }
 }
 
 @Composable
-private fun ForecastHeader() {
+private fun ForecastHeader(locationName: String?) {
     Row(
         Modifier.fillMaxWidth().statusBarsPadding().padding(top = 4.dp, bottom = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f)) {
             Text("Dự báo", color = Color.White, fontSize = 30.sp, fontWeight = FontWeight.Bold)
-            Text("Tổng quan thời tiết 7 ngày", color = Color.White.copy(.72f), fontSize = 13.sp)
+            Text(
+                locationName?.let { "7 ngày tới tại $it" } ?: "Tổng quan thời tiết 7 ngày",
+                color = Color.White.copy(.72f), fontSize = 13.sp
+            )
         }
         IconButton(onClick = {}, modifier = Modifier.background(Color.White.copy(.14f), CircleShape)) {
             Icon(Icons.Outlined.Tune, "Bộ lọc", tint = Color.White)
@@ -69,7 +88,7 @@ private fun ForecastHeader() {
 }
 
 @Composable
-private fun TemperatureOverviewCard() {
+private fun TemperatureOverviewCard(days: List<DailyWeather>) {
     Card(
         shape = RoundedCornerShape(26.dp),
         colors = CardDefaults.cardColors(MaterialTheme.colorScheme.surface.copy(.94f)),
@@ -83,8 +102,19 @@ private fun TemperatureOverviewCard() {
             Spacer(Modifier.height(20.dp))
             Box(Modifier.fillMaxWidth().height(130.dp), contentAlignment = Alignment.Center) {
                 SkeletonBox(Modifier.fillMaxWidth().height(2.dp))
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround) {
-                    repeat(7) { SkeletonBox(Modifier.width(10.dp).height((35 + it % 3 * 18).dp), SkyBlue.copy(.32f)) }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround, verticalAlignment = Alignment.Bottom) {
+                    if (days.isEmpty()) {
+                        repeat(7) { SkeletonBox(Modifier.width(10.dp).height((35 + it % 3 * 18).dp), SkyBlue.copy(.32f)) }
+                    } else {
+                        days.take(7).forEach { day ->
+                            val barHeight = (day.maximumTemperatureCelsius.coerceIn(10.0, 45.0) * 2).dp
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text("${day.maximumTemperatureCelsius.roundToInt()}°", fontSize = 10.sp)
+                                Spacer(Modifier.height(4.dp))
+                                Box(Modifier.width(12.dp).height(barHeight).background(SkyBlue.copy(.55f), RoundedCornerShape(8.dp)))
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -92,24 +122,54 @@ private fun TemperatureOverviewCard() {
 }
 
 @Composable
-private fun ForecastDayCard() {
+private fun ForecastDayCard(day: DailyWeather? = null) {
     Card(
         shape = RoundedCornerShape(22.dp),
         colors = CardDefaults.cardColors(MaterialTheme.colorScheme.surface.copy(.94f)),
     ) {
         Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                SkeletonBox(Modifier.width(90.dp).height(15.dp))
-                Spacer(Modifier.height(8.dp))
-                SkeletonBox(Modifier.width(125.dp).height(10.dp))
+                if (day == null) {
+                    SkeletonBox(Modifier.width(90.dp).height(15.dp))
+                    Spacer(Modifier.height(8.dp))
+                    SkeletonBox(Modifier.width(125.dp).height(10.dp))
+                } else {
+                    Text(
+                        SimpleDateFormat("EEEE, dd/MM", Locale.forLanguageTag("vi"))
+                            .format(Date(day.dateEpochSeconds * 1000)),
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Spacer(Modifier.height(5.dp))
+                    Text(
+                        "${day.condition.toVietnamese()} · Mưa ${day.precipitationProbabilityPercent}%",
+                        fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurface.copy(.55f),
+                    )
+                }
             }
             Box(Modifier.size(45.dp).background(SkyBlue.copy(.12f), CircleShape), contentAlignment = Alignment.Center) {
                 Icon(Icons.Outlined.Cloud, null, tint = SkyBlue)
             }
             Spacer(Modifier.width(20.dp))
-            SkeletonBox(Modifier.width(58.dp).height(20.dp))
+            if (day == null) SkeletonBox(Modifier.width(58.dp).height(20.dp))
+            else Text(
+                "${day.maximumTemperatureCelsius.roundToInt()}° / ${day.minimumTemperatureCelsius.roundToInt()}°",
+                fontWeight = FontWeight.Bold,
+            )
         }
     }
+}
+
+private fun WeatherCondition.toVietnamese() = when (this) {
+    WeatherCondition.CLEAR -> "Trời quang"
+    WeatherCondition.PARTLY_CLOUDY -> "Có mây"
+    WeatherCondition.CLOUDY -> "Nhiều mây"
+    WeatherCondition.FOG -> "Sương mù"
+    WeatherCondition.DRIZZLE -> "Mưa phùn"
+    WeatherCondition.RAIN -> "Có mưa"
+    WeatherCondition.HEAVY_RAIN -> "Mưa lớn"
+    WeatherCondition.SNOW -> "Có tuyết"
+    WeatherCondition.THUNDERSTORM -> "Có giông"
+    WeatherCondition.UNKNOWN -> "Không xác định"
 }
 @Preview(
     showBackground = true,
